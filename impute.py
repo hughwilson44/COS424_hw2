@@ -20,7 +20,7 @@ from sklearn.datasets import load_boston
 #import matplotlib.pyplot as plt
 import pandas
 #import os
-from ReadData import ReadData
+import ReadData as RD
 # %matplotlib inline
 
 # Enter your directory here
@@ -29,7 +29,7 @@ from ReadData import ReadData
 def lassolars(data,target):
     '''Fit a lasso model to the data and target using the LARS
     algorithm'''
-    clf = linear_model.LassoLars(alpha=.1)
+    clf = linear_model.LassoLars(alpha=.1,fit_intercept=False)
     model = clf.fit(data,target)
     return(model)
 
@@ -38,31 +38,28 @@ def model2predictions(model,data,sample_full,filename):
         the genome start locus as row numbers, then: the genome start
         locus; the strand the site is on; and the imputed
         value for the sample.'''
-    sample_full[['predicted']] = model.predict(data)
-    pandas.DataFrame.to_csv(sample_full,'./' + filename, sep='\t')
+    sample_full['predicted'] = model.predict(data)
+    pandas.DataFrame.to_csv(sample_full,'./' + filename, sep='\t', index=False)
 
-def impute2file():
-    pass
 
 def main():
     # Read in the data files
-    Datapath = './data/intersected_final_chr1_cutoff_20_'
-    Path_sfull = Datapath + 'sample_full.bed'
-    Path_spar = Datapath + 'sample_partial.bed'
-    Path_train = Datapath + 'train.bed'
+    Datapath = './data/'
+    Path_sfull = Datapath + 'intersected_final_chr1_cutoff_20_sample_full.bed'
+    Path_spar = Datapath + 'intersected_final_chr1_cutoff_20_sample_partial.bed'
+    Path_train = Datapath + 'Train_NaN_Meaned_without_2627'
 
-    Dat_train = ReadData(Path_train)
-    Dat_spar = ReadData(Path_spar)
-    Dat_sfull = ReadData(Path_sfull)
+    Dat_train = RD.ReadDataHead(Path_train)
+    Dat_spar = RD.ReadData(Path_spar)
+    Dat_sfull = RD.ReadData(Path_sfull)
 
     # Call the lassolars regressor and print the result to file
     datind = map(str, range(1,Dat_train.shape[1]-4))
-    lasso_model = lassolars(Dat_train[[datind]],Dat_train[['450K']])
-    model2predictions(lasso_model,Dat_train[[datind]],sample_full, \
+    Dat_Xtrn = Dat_train[Dat_spar['1'].notnull()][datind]
+    Dat_Ytrn = Dat_spar['1'][Dat_spar['1'].notnull()]
+    lasso_model = lassolars(Dat_Xtrn,Dat_Ytrn)
+    model2predictions(lasso_model,Dat_train[datind],Dat_sfull, \
                       'lasso_predictions.csv')
-
-
-
 
 
 if __name__ == '__main__':
@@ -70,3 +67,4 @@ if __name__ == '__main__':
     data = boston.data
     target = boston.target
     print(lassolars(data,target))
+    main()
