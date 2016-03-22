@@ -5,7 +5,6 @@ from scipy import spatial
 
 
 def ReadData(filename):
-<<<<<<< HEAD
     Data = pd.read_csv(filename, sep = '\t', header = None, names = None)
     colnames = ['chr', 'start', 'end', 'strand']
     colnames.extend([str(i) for i in range(1, Data.shape[1]-4)])
@@ -21,13 +20,6 @@ def ReadDataHead(filename):
     colnames.append('450K')
     Data.columns = colnames
     return(Data)
-=======
-	Data = pd.read_csv(filename, sep = '\t', header = None, names = None)
-	colnames = ['chr', 'start', 'end', 'strand']
-	colnames.extend([str(i) for i in range(1, Data.shape[1]-4)])
-	colnames.append('450K')
-	Data.columns = colnames
-	return(Data)
 
 
 # Calculating cosine similarity, ignoring NaNs
@@ -87,13 +79,13 @@ def EliminateNaN(Data, Similarities):
 		print('in sample', str(i), ',', str(NumNaNs), 'NaNs replaced')
 
 	return Data
-	
+
 
 # Eliminating NaNs in training data by taking the mean
 # Data is a dataframe generated from ReadData
 def EliminateNaN_mean(Data):
 	SampleNum = Data.shape[1] - 5
-	
+
 	Values = Data.iloc[:, 4:(SampleNum+4)]
 
 	print('calculating means')
@@ -106,5 +98,4 @@ def EliminateNaN_mean(Data):
 				Data.iloc[r,j] = Means[r]
 
 	return Data
->>>>>>> 11d14bfe2c55d4944b6ff2b9bbd012b8e3659aec
 
