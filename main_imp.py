@@ -36,8 +36,14 @@ def lassolars(data,target):
 
 def ridgeregression(data,target):
     '''Fit a model to the data using ridge regression'''
-    clf = linear_model.RidgeCV(alphas=(0.1,1,10),fit_intercept=False, \
+    clf = linear_model.RidgeCV(alphas=(1e-5,1e-4,1e-3,1e-2,0.1,1,10),fit_intercept=False, \
                                store_cv_values=True)
+    model = clf.fit(data,target)
+    return(model)
+
+def elasticnet(data,target):
+    '''Fit a model to the data using elastic nets'''
+    clf = linear_model.ElasticNetCV(l1_ratio=0.75,fit_intercept=False)
     model = clf.fit(data,target)
     return(model)
 
@@ -64,6 +70,7 @@ def main():
     # Produce a copy of the full file to which predictions can be added
     lasso_results = Dat_sfull
     rr_results = Dat_sfull
+    el_results = Dat_sfull
 
     # METHOD 1
     # Train the estimator across specimens at fixed genome locus
@@ -82,13 +89,15 @@ def main():
     rr_results['M1_pred'] = rr_model.predict(Dat_train[datind])
     rr_M1_coefs = rr_model.coef_
 
-    # Elastic net
+    # Elastic nets
+    el_model = elasticnet(Dat_Xtrn1,Dat_Ytrn1)
+    el_results['M1_pred'] = el_model.predict(Dat_train[datind])
+    el_M1_coefs = el_model.coef_
 
-    # lasso information criterion
-
-    # Bayesian ridge regression
-
-    # polynomila regression?
+    # Print the alpha values
+    print('lasso',lasso_model.alpha_)
+    print('ridge',rr_model.alpha_)
+    print('elastic',el_model.alpha_)
 
     #-------------------------------------------------------------------
 
@@ -105,8 +114,9 @@ def main():
     TopPrd.set_index('start', drop=False, inplace=True, verify_integrity=True)
 
     # initialise holder arrays
-    #lasso_M2a_coefs = np.zeros([Dat_spar.shape[0],Dat_Xtrn2.shape[1]])
     lasso_M2a_pred = np.zeros(TopPrd.shape[0])
+    rr_M2a_pred = np.zeros(TopPrd.shape[0])
+    el_M2a_pred = np.zeros(TopPrd.shape[0])
 
     # initialise a counter
     count = 0
@@ -114,21 +124,34 @@ def main():
     # for target in list(Dat_spar.index[:5]):
     for target in list(TopPrd.loc[:,'start']):
         Dat_Ytrn2 = Dat_train.loc[target,datind]
-        #test_list = pandas.Series([147801436,37784243,228657761,3052174,30240118,2995603,149294387,228890883,2516515,157164982])
-        #Dat_Xtrn2fs = Dat_train[Dat_train.start.isin(test_list)][datind].transpose()
         Dat_Xtrn2fs = Dat_train.loc[TopPrd.loc[target,'predictor1':]][datind].transpose()
         Dat_Xpred2fs = Dat_Xpred2.loc[TopPrd.loc[target,'predictor1':],'1']
-        #TopPrd.loc[TopPrd.start.isin([10468]
         # lasso LARS
         lasso_model = lassolars(Dat_Xtrn2fs,Dat_Ytrn2)
         lasso_M2a_pred[count] = \
             lasso_model.predict(Dat_Xpred2fs.reshape(1,-1))    #.reshape(1,-1))
-        #lasso_M2a_coefs[count] = lasso_model.coef_.transpose()
+        # rr
+        rr_model = ridgeregression(Dat_Xtrn2fs,Dat_Ytrn2)
+        rr_M2a_pred[count] = \
+            rr_model.predict(Dat_Xpred2fs.reshape(1,-1))    #.reshape(1,-1))
+        # el
+        el_model = elasticnet(Dat_Xtrn2fs,Dat_Ytrn2)
+        el_M2a_pred[count] = \
+            el_model.predict(Dat_Xpred2fs.reshape(1,-1))    #.reshape(1,-1))
+
         count = count + 1
 
     lasso_results_multi_method = lasso_results.set_index('start',drop=False, verify_integrity=True)
     lasso_results_multi_method = lasso_results_multi_method.loc[TopPrd.loc[:,'start']]
     lasso_results_multi_method['M2a_pred'] = lasso_M2a_pred
+
+    rr_results_multi_method = rr_results.set_index('start',drop=False, verify_integrity=True)
+    rr_results_multi_method = rr_results_multi_method.loc[TopPrd.loc[:,'start']]
+    rr_results_multi_method['M2a_pred'] = rr_M2a_pred
+
+    el_results_multi_method = el_results.set_index('start',drop=False, verify_integrity=True)
+    el_results_multi_method = el_results_multi_method.loc[TopPrd.loc[:,'start']]
+    el_results_multi_method['M2a_pred'] = el_M2a_pred
 
     #-------------------------------------------------------------------
 
@@ -136,8 +159,12 @@ def main():
     predictions2file(lasso_results,'lasso_M1')
     predictions2file(lasso_results_multi_method, 'lasso_methods')
     predictions2file(rr_results,'rr_M1')
+    predictions2file(rr_results_multi_method, 'rr_methods')
+    predictions2file(el_results,'el_M1')
+    predictions2file(el_results_multi_method, 'el_methods')
     coefficients2file(lasso_M1_coefs,'lasso_M1')
     coefficients2file(rr_M1_coefs,'rr_M1')
+    coefficients2file(el_M1_coefs,'el_M1')
 #    coefficients2file(lasso_M2a_coefs,'lasso_M2a')
 
 if __name__ == '__main__':
