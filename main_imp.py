@@ -23,6 +23,7 @@ import pandas
 #import os
 import ReadData as RD
 # %matplotlib inline
+import time
 
 # Enter your directory here
 #os.chdir('/Users/hugh/Google Drive/Hugh/PhD/princeton/COS424/assignments/
@@ -30,20 +31,23 @@ import ReadData as RD
 def lassolars(data,target):
     '''Fit a lasso model to the data and target using the LARS
     algorithm'''
-    clf = linear_model.LassoLarsCV(cv=5,fit_intercept=False)
+    clf = linear_model.LassoLars( alpha = 0.1, fit_intercept = False )
+    #clf = linear_model.LassoLarsCV(cv=5,fit_intercept=False)
     model = clf.fit(data,target)
     return(model)
 
 def ridgeregression(data,target):
     '''Fit a model to the data using ridge regression'''
-    clf = linear_model.RidgeCV(alphas=(1e-5,1e-4,1e-3,1e-2,0.1,1,10),fit_intercept=False, \
-                               store_cv_values=True)
+    #clf = linear_model.RidgeCV(alphas=(1e-5,1e-4,1e-3,1e-2,0.1,1,10),fit_intercept=False, \
+    #                           store_cv_values=True)
+    clf = linear_model.Ridge(alpha=0.1,fit_intercept=False)
     model = clf.fit(data,target)
     return(model)
 
 def elasticnet(data,target):
     '''Fit a model to the data using elastic nets'''
-    clf = linear_model.ElasticNetCV(l1_ratio=0.75,fit_intercept=False)
+    #clf = linear_model.ElasticNetCV(l1_ratio=0.75,fit_intercept=False)
+    clf = linear_model.ElasticNet(alpha=0.1, l1_ratio=0.75,fit_intercept=False)
     model = clf.fit(data,target)
     return(model)
 
@@ -79,25 +83,34 @@ def main():
     Dat_Xtrn1 = Dat_train[Dat_spar['1'].notnull()][datind]
     Dat_Ytrn1 = Dat_spar['1'][Dat_spar['1'].notnull()]
 
+    # establish a start time
+    start_time = time.time()
+
     # lasso LARS
     lasso_model = lassolars(Dat_Xtrn1,Dat_Ytrn1)
     lasso_results['M1_pred'] = lasso_model.predict(Dat_train[datind])
     lasso_M1_coefs = lasso_model.coef_
+    print("--- lasso %s seconds ---" % (time.time() - start_time))
+    running_time = time.time()
 
     # ridge regression
     rr_model = ridgeregression(Dat_Xtrn1,Dat_Ytrn1)
     rr_results['M1_pred'] = rr_model.predict(Dat_train[datind])
     rr_M1_coefs = rr_model.coef_
+    print("--- ridge %s seconds ---" % (time.time() - running_time))
+    running_time = time.time()
 
     # Elastic nets
     el_model = elasticnet(Dat_Xtrn1,Dat_Ytrn1)
     el_results['M1_pred'] = el_model.predict(Dat_train[datind])
     el_M1_coefs = el_model.coef_
+    print("--- elastic %s seconds ---" % (time.time() - running_time))
+    running_time = time.time()
 
     # Print the alpha values
-    print('lasso',lasso_model.alpha_)
-    print('ridge',rr_model.alpha_)
-    print('elastic',el_model.alpha_)
+#    print('lasso',lasso_model.alpha_)
+#    print('ridge',rr_model.alpha_)
+#    print('elastic',el_model.alpha_)
 
     #-------------------------------------------------------------------
 
@@ -120,6 +133,7 @@ def main():
 
     # initialise a counter
     count = 0
+    running_time = time.time()
 
     # for target in list(Dat_spar.index[:5]):
     for target in list(TopPrd.loc[:,'start']):
@@ -152,6 +166,7 @@ def main():
     el_results_multi_method = el_results.set_index('start',drop=False, verify_integrity=True)
     el_results_multi_method = el_results_multi_method.loc[TopPrd.loc[:,'start']]
     el_results_multi_method['M2a_pred'] = el_M2a_pred
+    print("--- method2 %s seconds ---" % (time.time() - running_time))
 
     #-------------------------------------------------------------------
 
